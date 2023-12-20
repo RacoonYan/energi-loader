@@ -75,7 +75,7 @@ def get_and_save_as_csv(path, dataset, day, limit=10):
     if df is not None:
         df.to_csv(file)
 
-
+# avoiding duplicating tables by downloading the data everytime 
 def delete_if_day_exits(conn, table, day):
     cur = conn.cursor()
     # check if table exists
@@ -92,7 +92,7 @@ def upsert_into_sqlite(sqlite_db, dataset, day, df):
         delete_if_day_exits(conn, dataset, day)
         df.to_sql(dataset, conn, if_exists="append", index=False)
 
-
+# define the etl 
 def etl(dataset, day, sqlite_db, limit=10000):
     df_raw = get_as_data_frame(dataset, day, limit)
     if df_raw is None:
@@ -101,11 +101,12 @@ def etl(dataset, day, sqlite_db, limit=10000):
     df_enriched = transform(df_raw, day)
     upsert_into_sqlite(sqlite_db, dataset, day, df_enriched)
 
-
+# based on the needs of dateframe as well as datasets to get the desire database
 def do_work(sqlite_db, date_start, date_end, datasets):
     dates = pd.date_range(start=date_start, end=date_end)
     for db in datasets:
-        print(f"Loading data for {db} ...", end="", flush=True)
+        # Progress dots are printed to indicate the loading progress
+        print(f"Loading data for {db} ...", end="", flush=True) 
         for day in dates:
             etl(db, day, sqlite_db)
             print(".", end="", flush=True)
@@ -113,14 +114,15 @@ def do_work(sqlite_db, date_start, date_end, datasets):
         print(f"Database '{db}' has been loaded into {sqlite_db}.")
 
 
+#create a command-line argument parser
 parser = argparse.ArgumentParser(
     prog="EnergiLoader", description="Fetches datasets from the danish energi API"
 )
-
+# define the command-line arguments 
 parser.add_argument("sqlite_db")
 parser.add_argument("date_start")
 parser.add_argument("date_end")
 parser.add_argument("datasets")
-
+# parse the command-line arguments provided when the script is executed.
 args = parser.parse_args()
 do_work(args.sqlite_db, args.date_start, args.date_end, args.datasets.split(","))
