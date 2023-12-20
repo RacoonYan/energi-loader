@@ -6,12 +6,7 @@ import sqlite3
 import pandas as pd
 import requests
 
-INTERESTING_DATASETS = [
-    "CO2Emis",
-    "DeclarationProduction",
-    "DeclarationGridmix",
-    "CapacityPerMunicipality",
-]
+# Extracting the data of different datasets from the API of TSO electricity from denmark
 KNOWN_DATETIME_FIELDS = ["Minutes5UTC", "Minutes5DK", "HourUTC", "HourDK"]
 
 
@@ -23,13 +18,36 @@ def fetch_dataset_from_api(dataset, day, limit=10):
             f"https://api.energidataservice.dk/dataset/{dataset}?"
             + f"start={start}T00:00&end={end}&limit={limit}"
         )
-        return response.json()
-    except Exception:
-        print("Exception during loading")
+        json_dict = response.json()
+        if json_dict.get("total", 0) > limit:
+            print(
+                f"""Warning not all records were fetched for
+                {dataset} on {day} increase the limit."""
+            )
+        return json_dict
+    except IOError as err:
+        print(f"Exception during loading, {err}")
         return {}
 
 
+# transform the json data into dataframe without the matadata
 def to_data_frame(json_dict):
+    """strip metadata from response
+    {
+        "total": 1465496,
+        "limit": 4,
+        "dataset": "CO2Emis",
+        "records": [
+            {
+            "Minutes5UTC": "2023-12-20T12:00:00",
+            "Minutes5DK": "2023-12-20T13:00:00",
+            "PriceArea": "DK1",
+            "CO2Emission": 94.000000
+            },
+            ...
+            }
+        ]
+    }"""
     if json_dict.get("records"):
         return pd.DataFrame.from_dict(json_dict["records"])
 
@@ -38,14 +56,11 @@ def get_as_data_frame(dataset, day, limit=10):
     return to_data_frame(fetch_dataset_from_api(dataset, day, limit))
 
 
-def field_to_datetime(df, field):
-    df[field] = pd.to_datetime(df[field])
-
-
+# convert string to dataframe for known datetime fields
 def convert_known_datetime_fields(df):
     for c in df.columns:
         if c in KNOWN_DATETIME_FIELDS:
-            field_to_datetime(df, c)
+            df[c] = pd.to_datetime(df[c])
 
 
 def transform(df, day):
@@ -73,33 +88,39 @@ def delete_if_day_exits(conn, table, day):
 
 
 def upsert_into_sqlite(sqlite_db, dataset, day, df):
-    with sqlite3.connect(sqlite_db) as con:
-        delete_if_day_exits(con, dataset, day)
-        df.to_sql(dataset, con, if_exists="append", index=False)
+    with sqlite3.connect(sqlite_db) as conn:
+        delete_if_day_exits(conn, dataset, day)
+        df.to_sql(dataset, conn, if_exists="append", index=False)
 
 
 def etl(dataset, day, sqlite_db, limit=10000):
     df_raw = get_as_data_frame(dataset, day, limit)
+    if df_raw is None:
+        print(f"No data for {dataset} on {day}")
+        return
     df_enriched = transform(df_raw, day)
     upsert_into_sqlite(sqlite_db, dataset, day, df_enriched)
 
 
-def do_work(sqlite_db, date_start, date_end, databases):
+def do_work(sqlite_db, date_start, date_end, datasets):
     dates = pd.date_range(start=date_start, end=date_end)
-    for db in databases:
+    for db in datasets:
+        print(f"Loading data for {db} ...", end="", flush=True)
         for day in dates:
             etl(db, day, sqlite_db)
+            print(".", end="", flush=True)
+        print("")
         print(f"Database '{db}' has been loaded into {sqlite_db}.")
 
 
 parser = argparse.ArgumentParser(
-    prog="EnergiLoader", description="Fetches Dataset from the danish energi API"
+    prog="EnergiLoader", description="Fetches datasets from the danish energi API"
 )
 
 parser.add_argument("sqlite_db")
 parser.add_argument("date_start")
 parser.add_argument("date_end")
-parser.add_argument("databases")
+parser.add_argument("datasets")
 
 args = parser.parse_args()
-do_work(args.sqlite_db, args.date_start, args.date_end, args.databases.split(","))
+do_work(args.sqlite_db, args.date_start, args.date_end, args.datasets.split(","))
