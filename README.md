@@ -31,4 +31,3 @@ The following datasets are a good satrting point to explore:
 1. CO2Emis
 2. DeclarationProduction
 3. DeclarationGridmix
-4. CapacityPerMunicipality
