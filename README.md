@@ -32,5 +32,4 @@ The following datasets are a good satrting point to explore:
 2. DeclarationProduction
 3. DeclarationGridmix
 
-For more information of the datasets above
-https://www.energidataservice.dk/datasets 
+For more information of the datasets above, please visit https://www.energidataservice.dk/datasets 
