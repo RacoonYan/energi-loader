@@ -31,3 +31,6 @@ The following datasets are a good satrting point to explore:
 1. CO2Emis
 2. DeclarationProduction
 3. DeclarationGridmix
+
+For more information of the datasets above
+https://www.energidataservice.dk/datasets 
