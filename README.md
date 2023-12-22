@@ -33,3 +33,5 @@ The following datasets are a good satrting point to explore:
 3. DeclarationGridmix
 
 For more information of the datasets above, please visit https://www.energidataservice.dk/datasets 
+
+note: Due to the limited display of interactive plot, please download the notebook for the proper visualization. 

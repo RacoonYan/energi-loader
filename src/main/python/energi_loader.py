@@ -113,16 +113,16 @@ def do_work(sqlite_db, date_start, date_end, datasets):
         print("")
         print(f"Database '{db}' has been loaded into {sqlite_db}.")
 
-
-#create a command-line argument parser
-parser = argparse.ArgumentParser(
-    prog="EnergiLoader", description="Fetches datasets from the danish energi API"
-)
-# define the command-line arguments 
-parser.add_argument("sqlite_db")
-parser.add_argument("date_start")
-parser.add_argument("date_end")
-parser.add_argument("datasets")
-# parse the command-line arguments provided when the script is executed.
-args = parser.parse_args()
-do_work(args.sqlite_db, args.date_start, args.date_end, args.datasets.split(","))
+if __name__ == "__main__":
+    #create a command-line argument parser
+    parser = argparse.ArgumentParser(
+        prog="EnergiLoader", description="Fetches datasets from the danish energi API"
+    )
+    # define the command-line arguments 
+    parser.add_argument("sqlite_db")
+    parser.add_argument("date_start")
+    parser.add_argument("date_end")
+    parser.add_argument("datasets")
+    # parse the command-line arguments provided when the script is executed.
+    args = parser.parse_args()
+    do_work(args.sqlite_db, args.date_start, args.date_end, args.datasets.split(","))
